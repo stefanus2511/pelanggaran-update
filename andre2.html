@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lihat Data per Kelas — Pencatat Pelanggaran</title>
+
+  <!-- SweetAlert2 (tema dark agar konsisten) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg1: #001f3f;
+      --bg2: #003366;
+      --card-bg: #fff;
+      --text-dark: #001f3f;
+      --accent: #ff4d4f;
+    }
+    * { box-sizing: border-box }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 40px;
+    }
+
+    /* Navbar */
+    .navbar {
+      width: 100%;
+      background: rgba(0, 31, 63, 0.95);
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    .logo { display: flex; gap: 10px; align-items: center }
+    .logo img { width: 40px; height: 40px; border-radius: 50% }
+    .logo h2 { margin: 0; font-size: 1.05em; font-weight: 600; letter-spacing: 0.5px }
+
+    /* Garis Tiga */
+    .menu-toggle {
+      font-size: 26px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform .3s;
+    }
+    .menu-toggle.active { transform: rotate(90deg); }
+
+    /* Menu isi garis tiga */
+    .menu {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: rgba(0, 31, 63, 0.98);
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      display: none;
+      flex-direction: column;
+      width: 180px;
+      overflow: hidden;
+      animation: slideDown .3s;
+    }
+    .menu a {
+      color: #fff;
+      padding: 12px 15px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255, 255, 255, .1);
+    }
+    .menu a:last-child { border-bottom: none }
+    .menu a:hover { background: #003366 }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px) }
+      to { opacity: 1; transform: translateY(0) }
+    }
+
+    /* Konten */
+    .wrap {
+      width: 95%;
+      max-width: 1100px;
+      margin-top: 28px;
+    }
+    .heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .heading h1 {
+      margin: 0;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .search {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      outline: none;
+      min-width: 180px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .classes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .class-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px 20px;
+      min-width: 100px;
+      text-align: center;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all .22s;
+      color: #fff;
+      user-select: none;
+    }
+    .class-card:hover { transform: translateY(-6px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) }
+    .class-card.active {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .students-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .student-card {
+      background: var(--card-bg);
+      color: var(--text-dark);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s;
+    }
+    .student-card:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18) }
+
+    .student-left { display: flex; align-items: center; gap: 12px }
+    .avatar {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0;
+    }
+    .student-name { font-weight: 600; font-size: 15px }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0, 0, 0, 0.04);
+      padding: 6px 10px; border-radius: 20px;
+      font-size: 13px; color: var(--text-dark);
+    }
+    .violation-indicator {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent);
+      margin-right: 8px;
+      box-shadow: 0 0 6px rgba(255, 77, 79, 0.5);
+    }
+    .no-data { color: rgba(255, 255, 255, 0.75); margin-top: 12px; text-align: center }
+
+    @media (max-width: 640px) {
+      .students-grid { grid-template-columns: repeat(1, minmax(0, 1fr)) }
+      .class-card { min-width: 82px; padding: 12px }
+      .wrap { padding: 0 12px }
+      .heading { flex-direction: column; align-items: flex-start; gap: 10px }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <img src="spentrik.png" alt="Logo Anak SMP">
+      <h2>Pencatat Pelanggaran Siswa</h2>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="menu-toggle" id="menuToggle">☰</div>
+    </div>
+
+    <div class="menu" id="menu">
+      <a href="https://lnk.ink/osis-spentrik">Laporkan Masalah</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="heading">
+      <h1>Pilih Kelas — Lihat Siswa & Riwayat</h1>
+      <div class="controls">
+        <input id="searchInput" class="search" placeholder="Cari nama siswa di kelas..." />
+        <button id="refreshBtn" class="class-card" style="min-width:auto;padding:8px 12px">Refresh</button>
+      </div>
+    </div>
+
+    <div id="classesContainer" class="classes"></div>
+    <div id="studentsContainer" class="students-grid"></div>
+    <div id="emptyMsg" class="no-data" style="display:none">Pilih kelas untuk melihat daftar siswa.</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBmydfk1xVp4WsTtypy5rZCKWKpGNC72Ro",
+      authDomain: "pelanggaran-update.firebaseapp.com",
+      projectId: "pelanggaran-update",
+      storageBucket: "pelanggaran-update.appspot.com",
+      messagingSenderId: "165344570675",
+      appId: "1:165344570675:web:384d27c299e7dc7deba246",
+      measurementId: "G-QXRDJLR2SR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let students = [];
+    let violations = [];
+    let classes = [];
+    let selectedClass = null;
+
+    const classesContainer = document.getElementById('classesContainer');
+    const studentsContainer = document.getElementById('studentsContainer');
+    const emptyMsg = document.getElementById('emptyMsg');
+    const searchInput = document.getElementById('searchInput');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    async function loadAllData() {
+      classesContainer.innerHTML = '';
+      studentsContainer.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      try {
+        const sSnap = await getDocs(collection(db, 'students'));
+        students = sSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const vSnap = await getDocs(collection(db, 'violations'));
+        violations = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        classes = [...new Set(students.map(s => s.class))].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
+        renderClassCards();
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Error', 'Gagal memuat data dari Firestore. Cek console.', 'error');
+      }
+    }
+
+    function renderClassCards() {
+      classesContainer.innerHTML = '';
+      if (classes.length === 0) {
+        classesContainer.innerHTML = '<div class="no-data">Belum ada data kelas.</div>';
+        return;
+      }
+      classes.forEach(cls => {
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        card.tabIndex = 0;
+        card.innerHTML = `
+          <div style="font-weight:600;font-size:15px">${cls}</div>
+          <div style="font-size:12px;margin-top:6px;opacity:.85">${students.filter(s=>s.class===cls).length} siswa</div>`;
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.class-card').forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          selectedClass = cls;
+          renderStudentsForClass(cls);
+        });
+        card.addEventListener('keydown', e => { if (e.key === 'Enter') card.click(); });
+        classesContainer.appendChild(card);
+      });
+    }
+
+    function renderStudentsForClass(cls) {
+      studentsContainer.innerHTML = '';
+      const filtered = students
+        .filter(s => s.class === cls)
+        .sort((a, b) => a.name.localeCompare(b.name, 'id', { sensitivity: 'base' }));
+
+      if (filtered.length === 0) {
+        studentsContainer.innerHTML = '<div class="no-data" style="color:rgba(255,255,255,.85)">Tidak ada siswa di kelas ini.</div>';
+        emptyMsg.style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      const countMap = violations.reduce((acc, v) => {
+        const key = `${v.student}:::${v.class}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+
+      filtered.forEach(s => {
+        const key = `${s.name}:::${s.class}`;
+        const cnt = countMap[key] || 0;
+        const card = document.createElement('div');
+        card.className = 'student-card';
+        card.innerHTML = `
+          <div class="student-left">
+            <div class="avatar">${getInitials(s.name)}</div>
+            <div>
+              <div class="student-name">${s.name}</div>
+              <div style="font-size:12px;margin-top:6px;color:rgba(0,0,0,0.55)">${s.nis ? 'NIS: '+s.nis : ''}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            ${cnt>0 ? `<div class="badge"><div class="violation-indicator"></div> ${cnt}</div>` : `<div style="font-size:13px;color:rgba(0,0,0,0.45)">Bersih</div>`}
+          </div>`;
+        card.addEventListener('click', () => showViolationHistory(s));
+        studentsContainer.appendChild(card);
+      });
+      applyStudentSearch();
+    }
+
+    function getInitials(name) {
+      if (!name) return 'U';
+      const parts = name.trim().split(/\s+/).slice(0, 2);
+      return parts.map(p => p[0]?.toUpperCase() || '').join('');
+    }
+
+    function showViolationHistory(student) {
+      const list = violations
+        .filter(v => v.student === student.name && v.class === student.class)
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      if (list.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: student.name,
+          html: `<p>Belum ada catatan pelanggaran untuk <b>${student.name}</b> di kelas <b>${student.class}</b>.</p>`,
+        });
+        return;
+      }
+      const html = list.map(v => {
+        const d = v.date ? `<div style="font-size:13px;color:#cfd8dc">${v.date}</div>` : '';
+        return `<div style="padding:10px 0;border-bottom:1px dashed rgba(255,255,255,0.06);">
+                  <div style="font-weight:600">${escapeHtml(v.violation)}</div>
+                  ${d}
+                </div>`;
+      }).join('');
+      Swal.fire({
+        title: `${student.name} — Riwayat (${list.length})`,
+        html: `<div style="text-align:left;padding-top:6px">${html}</div>`,
+        width: 650,
+        showCloseButton: true,
+        focusConfirm: false,
+        confirmButtonText: 'Tutup',
+      });
+    }
+
+    function escapeHtml(unsafe) {
+      return (unsafe || '').replace(/[&<"'>]/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      }[m]));
+    }
+
+    function applyStudentSearch() {
+      const q = (searchInput.value || '').toLowerCase().trim();
+      if (!selectedClass) return;
+      const cards = Array.from(studentsContainer.children);
+      if (!q) { cards.forEach(c => c.style.display = 'flex'); return; }
+      cards.forEach(card => {
+        const name = card.querySelector('.student-name')?.textContent?.toLowerCase() || '';
+        card.style.display = name.includes(q) ? 'flex' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', applyStudentSearch);
+    refreshBtn.addEventListener('click', loadAllData);
+
+    const menuToggle = document.getElementById('menuToggle');
+    const menu = document.getElementById('menu');
+    menuToggle.addEventListener('click', () => {
+      menu.classList.toggle('show');
+      menuToggle.classList.toggle('active');
+      if (menu.classList.contains('show')) menu.style.display = 'flex';
+      else menu.style.display = 'none';
+    });
+
+    loadAllData();
+  </script>
+</body>
+</html>
